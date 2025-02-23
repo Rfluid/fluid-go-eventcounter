@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/reb-felipe/eventcounter/cmd/rabbitmq"
@@ -29,10 +28,6 @@ func ConsumeLoop() {
 	if err != nil {
 		log.Fatalf("Erro ao consumir mensagens: %v", err)
 	}
-
-	// Mapa para garantir que cada mensagem (identificada por seu ID) seja processada apenas uma vez.
-	processed := make(map[string]bool)
-	var procMu sync.Mutex
 
 	// Timer para detectar 5 segundos de inatividade.
 	timer := time.NewTimer(5 * time.Second)
@@ -73,15 +68,6 @@ consumeLoop:
 				log.Printf("Erro ao fazer unmarshal da mensagem: %v", err)
 				continue
 			}
-
-			// Verifica se a mensagem já foi processada.
-			procMu.Lock()
-			if processed[body.ID] {
-				procMu.Unlock()
-				continue
-			}
-			processed[body.ID] = true
-			procMu.Unlock()
 
 			// Encaminha a mensagem para o canal correspondente.
 			em := eventcounter.Message{
